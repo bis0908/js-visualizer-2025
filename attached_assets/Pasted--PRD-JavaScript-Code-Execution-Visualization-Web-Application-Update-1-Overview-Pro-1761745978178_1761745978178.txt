@@ -1,0 +1,170 @@
+# PRD: JavaScript Code Execution Visualization Web Application (Update)
+
+## 1. Overview
+
+* **Product Name:** JS Execution Visualizer
+* **Purpose:** Enables step-by-step visual learning of the JavaScript code execution process.
+* **Target Audience:** Beginner developers, computer science students, instructors.
+
+## 2. Key Update Requirements
+
+1. Separate the event queue into a `task queue` and `microtask queue` for detailed visualization.
+2. Add an example library allowing users to select predefined sample code for immediate execution/step debugging.
+
+## 3. Detailed Design of Event Loop and Queues
+
+### 3.1 Concept Summary
+
+* **Call Stack:** Manages synchronous execution contexts as a stack.
+* **Task Queue (macrotask):** Includes setTimeout, setInterval, I/O callbacks, UI rendering callbacks, etc.
+* **Microtask Queue:** Promise.then/catch/finally, queueMicrotask, etc. Microtasks are processed immediately after the current execution context becomes empty.
+* **Event Loop Behavior:** When the call stack is empty, the microtask queue is cleared entirely, then one task is fetched from the task queue and executed.
+
+### 3.2 Visualization Requirements
+
+* **Separate Panels:** Display the task queue and microtask queue individually.
+* **Priority Animation:** Animate to show which queue is processed first at the current stage.
+* **Queue Item Metadata:** Display creation time, source (e.g., setTimeout, Promise.then), and linked stack frames.
+* **Concurrency Indication:** Show scheduling order and method when multiple tasks are scheduled simultaneously.
+* **Snapshot Timeline:** Save and explore stack/heap/queue states at specific points in time.
+
+### 3.3 Interaction
+
+* **Click queue item:** Jump to the callback's code location and display related memory (variable values).
+* **Force flush:** Experiment by running only microtasks first using the debugger button.
+* **Speed control:** Adjust animation and step intervals.
+
+## 4. Example Library (User Selectable)
+
+Users select example groups from the sidebar. Each example includes a description, code, and expected behavior (step-by-step).
+
+### Group A: Basic Concepts
+
+* **1. Call Stack Fundamentals**
+
+```js
+function a(){ console.log(‘a’); }
+function b(){ a(); console.log(‘b’); }
+b();
+```
+
+* **2. Scope & Closures**
+
+```js
+function outer(){
+  let x = 1;
+  return function(){
+    x++;
+    console.log(x);
+  }
+}
+const fn = outer();
+fn();
+fn();
+```
+
+### Group B: Event Loop, Tasks vs Microtasks
+
+* **3. Task vs Microtask Basics**
+
+```js
+console.log(‘start’);
+setTimeout(()=>console.log(‘timeout’),0);
+Promise.resolve().then(()=>console.log(‘promise’));
+console.log(‘end’);
+```
+
+* **4. Promise.then Chaining and Error Handling**
+
+```js
+Promise.resolve()
+  .then(()=>{ console.log(‘then1’); })
+  .then(()=>{ throw new Error(‘err’); })
+  .catch(e => console.log(‘caught’, e.message));
+```
+
+* **5. promise.all vs promise.race**
+
+```js
+const p1 = new Promise(r=>setTimeout(()=>r(‘p1’),50));
+const p2 = Promise.resolve(‘p2’);
+Promise.all([p1,p2]).then(console.log);
+Promise.race([p1,p2]).then(console.log);
+```
+
+* **6. Nested Promise Chain**
+
+```js
+Promise.resolve()
+  .then(()=>Promise.resolve(‘inner’))
+  .then(v=>console.log(‘after inner’, v));
+```
+
+### Group C: Complex Asynchronous Scenarios
+
+* **7. Microtask Priority Experiment**
+
+```js
+console.log(‘S’);
+setTimeout(()=>console.log(‘T’),0);
+Promise.resolve().then(()=>{
+  console.log(‘M1’);
+  return Promise.resolve();
+}).then(()=>console.log(‘M2’));
+console.log(‘E’);
+```
+
+* **8. async/await and Queue Interaction**
+
+```js
+console.log(‘start’);
+async function f(){
+  await Promise.resolve();
+  console.log(‘after await’);
+}
+f();
+console.log(‘end’);
+```
+
+### Metadata to Provide in the UI
+
+* For each example: Description, Expected Output (Line Order), Relevant Visualization Mode (Basic/Advanced), Learning Tips.
+
+## 5. UI Changes
+
+* **Sidebar: Example Browser**
+
+  * Group filters, search, favorites
+  * Loads selected example into code editor and activates ‘Run|Step’ button
+* **Visualization Panel:** Queue sections split left/right to show task queue and microtask queue simultaneously.
+* **Highlight:** Blinking animation on items waiting to run in queue
+
+## 6. Technical Considerations
+
+* **Execution Engine:** Safety first. Recommended to execute steps using an AST-based interpreter within a Web Worker-based sandbox.
+* **Scheduling Simulation:** Implemented an internal scheduler to mimic the browser's actual event loop behavior. (Requires precise timing control not achievable solely with setTimeout.)
+* **Precision Timing:** Delay values in setTimeout examples managed by internal simulator.
+* **Parser:** Generate AST with Babel/Esprima and convert to custom executor.
+
+## 7. QA Cases (Key)
+
+* Scenario verifying microtasks always execute before regular tasks.
+* Confirm errors in Promise chains are caught at intended locations.
+* Verify order preservation when scheduling multiple setTimeouts concurrently.
+
+## 8. Success Metric Updates
+
+* Event queue learning example completion rate ≥ 70%.
+* User probability of correctly predicting output order in “tasks vs microtasks” example ≥ 80%.
+
+## 9. Future Extensions
+
+* User example upload functionality and shareable link generation.
+* Automatic description generation based on execution history (optional).
+
+---
+
+*This PRD document reflects an updated version incorporating example code and event queue visualization design.*
+
+
+Translated with DeepL.com (free version)
