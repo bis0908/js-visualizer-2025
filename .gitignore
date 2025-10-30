@@ -231,3 +231,6 @@ $RECYCLE.BIN/
 # claude
 .claude
 **/claude.md
+
+# mcp
+.playwright-mcp
