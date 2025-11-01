@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Terminal, Info, AlertTriangle, XCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LAYOUT_CONFIG } from "@/lib/layoutConfig";
 import type { ConsoleLog } from "@shared/schema";
 
 interface ConsolePanelProps {
@@ -24,11 +25,7 @@ const logColors = {
 };
 
 export function ConsolePanel({ logs, onClear }: ConsolePanelProps) {
-  const [height, setHeight] = useState(192); // 48 * 4 = 192px (h-48)
-  const [isResizing, setIsResizing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const startYRef = useRef(0);
-  const startHeightRef = useRef(0);
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -37,52 +34,8 @@ export function ConsolePanel({ logs, onClear }: ConsolePanelProps) {
     }
   }, [logs]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsResizing(true);
-    startYRef.current = e.clientY;
-    startHeightRef.current = height;
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      const delta = startYRef.current - e.clientY;
-      const newHeight = Math.max(192, Math.min(384, startHeightRef.current + delta));
-      setHeight(newHeight);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing, height]);
-
   return (
-    <div
-      className="bg-card border-t overflow-hidden flex flex-col"
-      style={{ height: `${height}px` }}
-    >
-      {/* Resize handle */}
-      <div
-        className={cn(
-          "h-1 cursor-ns-resize hover:h-2 hover:bg-primary/20 transition-all",
-          isResizing && "bg-primary/30"
-        )}
-        onMouseDown={handleMouseDown}
-        role="separator"
-        aria-label="Resize console"
-        aria-orientation="horizontal"
-      />
-
+    <div className="h-full bg-card overflow-hidden flex flex-col">
       {/* Console header */}
       <div className="h-12 flex items-center justify-between px-4 border-b bg-muted/20">
         <div className="flex items-center gap-2">

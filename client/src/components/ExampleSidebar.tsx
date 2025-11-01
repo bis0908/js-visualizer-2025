@@ -1,10 +1,10 @@
-import { useState } from "react";
+import type { CodeExample } from "@shared/schema";
 import { Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { CodeExample } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 interface ExampleSidebarProps {
@@ -21,17 +21,25 @@ const groupLabels = {
 };
 
 const difficultyColors = {
-  beginner: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  intermediate: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  advanced: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  beginner:
+    "bg-green-100 text-green-800 dark:bg-green-100/30 dark:text-green-400",
+  intermediate:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-100/30 dark:text-yellow-400",
+  advanced: "bg-red-100 text-red-800 dark:bg-red-100/30 dark:text-red-400",
 };
 
-export function ExampleSidebar({ examples, selectedId, onSelect, isOpen }: ExampleSidebarProps) {
+export function ExampleSidebar({
+  examples,
+  selectedId,
+  onSelect,
+  isOpen,
+}: ExampleSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredExamples = examples.filter((example) =>
-    example.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    example.description.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredExamples = examples.filter(
+    (example) =>
+      example.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      example.description.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const groupedExamples = {
@@ -44,7 +52,7 @@ export function ExampleSidebar({ examples, selectedId, onSelect, isOpen }: Examp
     <aside
       className={cn(
         "bg-sidebar border-r transition-all duration-300 ease-in-out overflow-hidden",
-        isOpen ? "w-80" : "w-0"
+        isOpen ? "w-80" : "w-0",
       )}
       aria-hidden={!isOpen}
     >
@@ -77,51 +85,56 @@ export function ExampleSidebar({ examples, selectedId, onSelect, isOpen }: Examp
         {/* Examples grouped by category */}
         <ScrollArea className="flex-1">
           <div className="p-2">
-            {Object.entries(groupedExamples).map(([groupKey, groupExamples]) => {
-              if (groupExamples.length === 0) return null;
+            {Object.entries(groupedExamples).map(
+              ([groupKey, groupExamples]) => {
+                if (groupExamples.length === 0) return null;
 
-              return (
-                <div key={groupKey} className="mb-4">
-                  <h3 className="text-xs uppercase font-semibold py-3 px-4 text-sidebar-foreground">
-                    {groupLabels[groupKey as keyof typeof groupLabels]}
-                  </h3>
-                  <div className="space-y-1">
-                    {groupExamples.map((example) => (
-                      <button
-                        key={example.id}
-                        onClick={() => onSelect(example)}
-                        className={cn(
-                          "w-full text-left px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform rounded-lg border",
-                          selectedId === example.id
-                            ? "bg-sidebar-accent border-primary shadow-sm"
-                            : "border-transparent hover-elevate"
-                        )}
-                        data-testid={`button-example-${example.id}`}
-                      >
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h4 className="font-medium text-sm">{example.title}</h4>
-                          <Badge
-                            variant="secondary"
-                            className={cn(
-                              "text-xs px-2 py-0.5 rounded-full font-medium shrink-0",
-                              difficultyColors[example.difficulty]
-                            )}
-                          >
-                            {example.difficulty}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {example.description}
-                        </p>
-                        <div className="mt-2 text-xs font-mono text-muted-foreground truncate">
-                          → {example.expectedOutput[0]}
-                        </div>
-                      </button>
-                    ))}
+                return (
+                  <div key={groupKey} className="mb-4">
+                    <h3 className="text-xs uppercase font-semibold py-3 px-4 text-sidebar-foreground">
+                      {groupLabels[groupKey as keyof typeof groupLabels]}
+                    </h3>
+                    <div className="space-y-1">
+                      {groupExamples.map((example) => (
+                        <button
+                          type="button"
+                          key={example.id}
+                          onClick={() => onSelect(example)}
+                          className={cn(
+                            "w-full text-left px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform rounded-lg border",
+                            selectedId === example.id
+                              ? "bg-sidebar-accent border-primary shadow-sm"
+                              : "border-transparent hover-elevate",
+                          )}
+                          data-testid={`button-example-${example.id}`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h4 className="font-medium text-sm">
+                              {example.title}
+                            </h4>
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                "text-xs px-2 py-0.5 rounded-full font-medium shrink-0",
+                                difficultyColors[example.difficulty],
+                              )}
+                            >
+                              {example.difficulty}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {example.description}
+                          </p>
+                          <div className="mt-2 text-xs font-mono text-muted-foreground truncate">
+                            → {example.expectedOutput[0]}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              },
+            )}
 
             {filteredExamples.length === 0 && (
               <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">

@@ -1,18 +1,21 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { TopBar } from "@/components/TopBar";
-import { ExampleSidebar } from "@/components/ExampleSidebar";
-import { CodeEditor } from "@/components/CodeEditor";
-import { CallStackPanel } from "@/components/CallStackPanel";
-import { QueuePanel } from "@/components/QueuePanel";
-import { ConsolePanel } from "@/components/ConsolePanel";
-import { ExecutionEngine } from "@/lib/executionEngine";
 import type { CodeExample, ExecutionState } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CallStackPanel } from "@/components/CallStackPanel";
+import { CodeEditor } from "@/components/CodeEditor";
+import { ConsolePanel } from "@/components/ConsolePanel";
+import { ExampleSidebar } from "@/components/ExampleSidebar";
+import { QueuePanel } from "@/components/QueuePanel";
+import { TopBar } from "@/components/TopBar";
+import { ExecutionEngine } from "@/lib/executionEngine";
+import { LAYOUT_CONFIG } from "@/lib/layoutConfig";
 
 export default function Visualizer() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [selectedExample, setSelectedExample] = useState<CodeExample | null>(null);
+  const [selectedExample, setSelectedExample] = useState<CodeExample | null>(
+    null,
+  );
   const [code, setCode] = useState("");
   const [executionState, setExecutionState] = useState<ExecutionState>({
     callStack: [],
@@ -29,10 +32,10 @@ export default function Visualizer() {
 
   // Fetch examples
   const { data: examples = [], isLoading } = useQuery<CodeExample[]>({
-    queryKey: ['examples'],
+    queryKey: ["examples"],
     queryFn: async () => {
-      const res = await fetch('/api/examples');
-      if (!res.ok) throw new Error('Failed to fetch examples');
+      const res = await fetch("/api/examples");
+      if (!res.ok) throw new Error("Failed to fetch examples");
       return res.json();
     },
     staleTime: Infinity,
@@ -49,11 +52,11 @@ export default function Visualizer() {
   const handleSelectExample = useCallback((example: CodeExample) => {
     setSelectedExample(example);
     setCode(example.code);
-    
+
     // Create new execution engine for this example
     const engine = new ExecutionEngine(example.id);
     engineRef.current = engine;
-    
+
     // Reset to initial state
     setExecutionState(engine.getInitialState());
   }, []);
@@ -102,19 +105,26 @@ export default function Visualizer() {
     }));
   }, []);
 
-  const handleSpeedChange = useCallback((speed: number) => {
-    setExecutionState((prev) => ({
-      ...prev,
-      speed,
-    }));
+  const handleSpeedChange = useCallback(
+    (speed: number) => {
+      setExecutionState((prev) => ({
+        ...prev,
+        speed,
+      }));
 
-    // If currently playing, restart with new speed
-    if (executionState.isRunning && !executionState.isPaused && engineRef.current) {
-      engineRef.current.play(speed, (newState) => {
-        setExecutionState((prev) => ({ ...newState, speed }));
-      });
-    }
-  }, [executionState.isRunning, executionState.isPaused]);
+      // If currently playing, restart with new speed
+      if (
+        executionState.isRunning &&
+        !executionState.isPaused &&
+        engineRef.current
+      ) {
+        engineRef.current.play(speed, (newState) => {
+          setExecutionState((_) => ({ ...newState, speed }));
+        });
+      }
+    },
+    [executionState.isRunning, executionState.isPaused],
+  );
 
   const handleClearConsole = useCallback(() => {
     setExecutionState((prev) => ({
@@ -135,7 +145,10 @@ export default function Visualizer() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) {
+      if (
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLInputElement
+      ) {
         return;
       }
 
@@ -162,15 +175,26 @@ export default function Visualizer() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [executionState.isRunning, executionState.isPaused, handlePlay, handlePause, handleStep, handleReset]);
+  }, [
+    executionState.isRunning,
+    executionState.isPaused,
+    handlePlay,
+    handlePause,
+    handleStep,
+    handleReset,
+  ]);
 
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-lg font-medium text-foreground">Loading examples...</p>
-          <p className="text-sm text-muted-foreground mt-2">Preparing your learning environment</p>
+          <p className="text-lg font-medium text-foreground">
+            Loading examples...
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Preparing your learning environment
+          </p>
         </div>
       </div>
     );
@@ -198,44 +222,61 @@ export default function Visualizer() {
           isOpen={sidebarOpen}
         />
 
-        <main className="flex-1 flex overflow-hidden">
-          {/* Code editor section - 왼쪽 영역 */}
-          <div className="w-[40%] p-4 overflow-hidden">
-            <CodeEditor
-              code={code}
-              currentLine={executionState.currentLine}
-              onChange={setCode}
-              readOnly={executionState.isRunning}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {/* 상단: 코드 에디터 + 콜스택 + 큐 영역 */}
+          <div
+            className="flex overflow-hidden"
+            style={{ height: `${LAYOUT_CONFIG.rightPanel.visualizationArea}%` }}
+          >
+            {/* Code editor section - 왼쪽 영역 */}
+            <div
+              className="p-4 overflow-hidden"
+              style={{ width: LAYOUT_CONFIG.mainArea.codeEditorWidth }}
+            >
+              <CodeEditor
+                code={code}
+                currentLine={executionState.currentLine}
+                onChange={setCode}
+                readOnly={executionState.isRunning}
+              />
+            </div>
+
+            {/* Call Stack - 중앙에 세로로 배치 */}
+            <div
+              className="p-4 overflow-hidden border-l"
+              style={{ width: LAYOUT_CONFIG.mainArea.callStackWidth }}
+            >
+              <CallStackPanel frames={executionState.callStack} />
+            </div>
+
+            {/* Queue panels - 우측 영역 */}
+            <div className="flex-1 flex flex-col gap-0 border-l">
+              <div className="flex-1 p-4 overflow-hidden">
+                <QueuePanel
+                  title="Microtask Queue"
+                  type="microtask"
+                  items={executionState.microtaskQueue}
+                />
+              </div>
+              <div className="flex-1 p-4 overflow-hidden border-t">
+                <QueuePanel
+                  title="Task Queue"
+                  type="task"
+                  items={executionState.taskQueue}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 하단: Console Output - 전체 너비 */}
+          <div
+            className="border-t"
+            style={{ height: `${LAYOUT_CONFIG.rightPanel.consoleArea}vh` }}
+          >
+            <ConsolePanel
+              logs={executionState.consoleOutput}
+              onClear={handleClearConsole}
             />
-          </div>
-
-          {/* Call Stack - 중앙에 세로로 배치 */}
-          <div className="w-[20%] p-4 overflow-hidden border-l">
-            <CallStackPanel frames={executionState.callStack} />
-          </div>
-
-          {/* Queue panels + Console - 우측 영역 */}
-          <div className="flex-1 flex flex-col gap-0 border-l">
-            <div className="flex-1 p-4 overflow-hidden">
-              <QueuePanel
-                title="Microtask Queue"
-                type="microtask"
-                items={executionState.microtaskQueue}
-              />
-            </div>
-            <div className="flex-1 p-4 overflow-hidden border-t">
-              <QueuePanel
-                title="Task Queue"
-                type="task"
-                items={executionState.taskQueue}
-              />
-            </div>
-            <div className="h-48 border-t">
-              <ConsolePanel
-                logs={executionState.consoleOutput}
-                onClear={handleClearConsole}
-              />
-            </div>
           </div>
         </main>
       </div>

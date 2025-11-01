@@ -1,8 +1,8 @@
+import type { StackFrame } from "@shared/schema";
 import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { StackFrame } from "@shared/schema";
-import { useState } from "react";
 
 interface CallStackPanelProps {
   frames: StackFrame[];
@@ -34,7 +34,7 @@ export function CallStackPanel({ frames }: CallStackPanelProps) {
       {/* Stack frames - 밑에서부터 쌓이는 방식: flex-col-reverse 사용 */}
       <div className="flex-1 overflow-y-auto p-4 flex flex-col-reverse">
         {frames.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-center">
+          <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-16 h-16 mb-3 rounded-full bg-muted flex items-center justify-center">
               <svg
                 className="w-8 h-8 text-muted-foreground"
@@ -42,6 +42,7 @@ export function CallStackPanel({ frames }: CallStackPanelProps) {
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
+                <title>svg</title>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -59,7 +60,8 @@ export function CallStackPanel({ frames }: CallStackPanelProps) {
           <div className="flex flex-col-reverse gap-2">
             {frames.map((frame, index) => {
               const isExpanded = expandedFrames.has(frame.id);
-              const hasVariables = frame.variables && Object.keys(frame.variables).length > 0;
+              const hasVariables =
+                frame.variables && Object.keys(frame.variables).length > 0;
 
               return (
                 <div
@@ -69,7 +71,7 @@ export function CallStackPanel({ frames }: CallStackPanelProps) {
                     "animate-in slide-in-from-bottom-4 fade-in",
                     index === frames.length - 1
                       ? "bg-primary/10 border-primary/30 shadow-lg shadow-primary/20 scale-[1.02]"
-                      : "bg-background hover-elevate"
+                      : "bg-background hover-elevate",
                   )}
                   style={{
                     animationDelay: `${index * 50}ms`,
@@ -90,14 +92,16 @@ export function CallStackPanel({ frames }: CallStackPanelProps) {
                         size="icon"
                         variant="ghost"
                         onClick={() => toggleFrame(frame.id)}
-                        aria-label={isExpanded ? "Collapse variables" : "Expand variables"}
+                        aria-label={
+                          isExpanded ? "Collapse variables" : "Expand variables"
+                        }
                         data-testid={`button-toggle-frame-${frame.id}`}
                         className="shrink-0"
                       >
                         <ChevronDown
                           className={cn(
                             "w-4 h-4 transition-transform",
-                            isExpanded && "rotate-180"
+                            isExpanded && "rotate-180",
                           )}
                         />
                       </Button>
@@ -109,18 +113,22 @@ export function CallStackPanel({ frames }: CallStackPanelProps) {
                     <div
                       className={cn(
                         "transition-all duration-200 overflow-hidden",
-                        isExpanded ? "max-h-96 mt-3" : "max-h-0"
+                        isExpanded ? "max-h-96 mt-3" : "max-h-0",
                       )}
                     >
                       <div className="text-xs font-mono space-y-1 border-t pt-2">
-                        {Object.entries(frame.variables!).map(([key, value]) => (
-                          <div key={key} className="flex items-start gap-2">
-                            <span className="text-muted-foreground">{key}:</span>
-                            <span className="text-foreground break-all">
-                              {JSON.stringify(value)}
-                            </span>
-                          </div>
-                        ))}
+                        {Object.entries(frame.variables!).map(
+                          ([key, value]) => (
+                            <div key={key} className="flex items-start gap-2">
+                              <span className="text-muted-foreground">
+                                {key}:
+                              </span>
+                              <span className="text-foreground break-all">
+                                {JSON.stringify(value)}
+                              </span>
+                            </div>
+                          ),
+                        )}
                       </div>
                     </div>
                   )}
