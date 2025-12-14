@@ -557,26 +557,14 @@ export class ExecutionEngine {
   }
 
   getInitialState(): ExecutionState {
-    if (this.steps.length === 0) {
-      return {
-        callStack: [],
-        taskQueue: [],
-        microtaskQueue: [],
-        consoleOutput: [],
-        currentLine: null,
-        isRunning: false,
-        isPaused: false,
-        speed: 500,
-      };
-    }
-
-    const firstStep = this.steps[0];
+    // 초기 상태에서는 currentLine을 null로 설정하여 코드 하이라이트 없음
+    // 리셋 후에도 깨끗한 상태 유지
     return {
-      callStack: firstStep.callStack,
-      taskQueue: firstStep.taskQueue,
-      microtaskQueue: firstStep.microtaskQueue,
-      consoleOutput: firstStep.consoleOutput,
-      currentLine: firstStep.currentLine,
+      callStack: [],
+      taskQueue: [],
+      microtaskQueue: [],
+      consoleOutput: [],
+      currentLine: null,
       isRunning: false,
       isPaused: false,
       speed: 500,

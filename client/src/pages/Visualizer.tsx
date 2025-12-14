@@ -1,18 +1,18 @@
 import type { CodeExample, ExecutionState } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CallStackPanel } from "@/components/CallStackPanel";
 import { CodeEditor } from "@/components/CodeEditor";
 import { ConsolePanel } from "@/components/ConsolePanel";
-import { ExampleSidebar } from "@/components/ExampleSidebar";
+import { ExampleModal } from "@/components/ExampleModal";
 import { QueuePanel } from "@/components/QueuePanel";
 import { TopBar } from "@/components/TopBar";
-import { ExecutionEngine } from "@/lib/executionEngine";
+import { DynamicExecutionEngine } from "@/lib/dynamic";
 import { LAYOUT_CONFIG } from "@/lib/layoutConfig";
+import type { ParseError } from "@/lib/dynamic/types";
 
 export default function Visualizer() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedExample, setSelectedExample] = useState<CodeExample | null>(
     null,
   );
@@ -28,7 +28,14 @@ export default function Visualizer() {
     speed: 500,
   });
 
-  const engineRef = useRef<ExecutionEngine | null>(null);
+  /** 파싱 에러 상태 */
+  const [parseErrors, setParseErrors] = useState<ParseError[]>([]);
+
+  /** 동적 실행 엔진 (메모이제이션) */
+  const engineRef = useRef<DynamicExecutionEngine | null>(null);
+
+  /** 코드 변경 디바운스 타이머 */
+  const codeChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch examples
   const { data: examples = [], isLoading } = useQuery<CodeExample[]>({
@@ -49,20 +56,68 @@ export default function Visualizer() {
     }
   }, [examples, selectedExample]);
 
+  /**
+   * 코드 로드 및 실행 엔진 초기화
+   */
+  const loadCode = useCallback((codeToLoad: string) => {
+    // 동적 실행 엔진 생성 및 코드 로드
+    const engine = new DynamicExecutionEngine();
+    const result = engine.loadCode(codeToLoad);
+
+    if (result.success) {
+      engineRef.current = engine;
+      setParseErrors([]);
+      setExecutionState((prev) => ({
+        ...engine.getInitialState(),
+        speed: prev.speed,
+      }));
+    } else {
+      // 파싱 에러 발생
+      setParseErrors(result.errors ?? []);
+      engineRef.current = null;
+      setExecutionState((prev) => ({
+        callStack: [],
+        taskQueue: [],
+        microtaskQueue: [],
+        consoleOutput: [],
+        currentLine: null,
+        isRunning: false,
+        isPaused: false,
+        speed: prev.speed,
+      }));
+    }
+  }, []);
+
   const handleSelectExample = useCallback((example: CodeExample) => {
     setSelectedExample(example);
     setCode(example.code);
+    loadCode(example.code);
+  }, [loadCode]);
 
-    // Create new execution engine for this example
-    const engine = new ExecutionEngine(example.id);
-    engineRef.current = engine;
+  /**
+   * 코드 변경 핸들러 (디바운스 적용)
+   */
+  const handleCodeChange = useCallback((newCode: string) => {
+    setCode(newCode);
 
-    // Reset to initial state
-    setExecutionState(engine.getInitialState());
-  }, []);
+    // 기존 타이머 취소
+    if (codeChangeTimerRef.current) {
+      clearTimeout(codeChangeTimerRef.current);
+    }
+
+    // 500ms 디바운스 후 코드 로드
+    codeChangeTimerRef.current = setTimeout(() => {
+      loadCode(newCode);
+    }, 500);
+  }, [loadCode]);
 
   const handlePlay = useCallback(() => {
     if (!engineRef.current) return;
+
+    // 실행 완료 상태면 자동 리셋 후 재실행
+    if (!engineRef.current.hasMoreSteps()) {
+      engineRef.current.reset();
+    }
 
     setExecutionState((prev) => ({
       ...prev,
@@ -139,6 +194,9 @@ export default function Visualizer() {
       if (engineRef.current) {
         engineRef.current.stop();
       }
+      if (codeChangeTimerRef.current) {
+        clearTimeout(codeChangeTimerRef.current);
+      }
     };
   }, []);
 
@@ -211,74 +269,77 @@ export default function Visualizer() {
         onStep={handleStep}
         onReset={handleReset}
         onSpeedChange={handleSpeedChange}
-        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        exampleDrawer={
+          <ExampleModal
+            examples={examples}
+            selectedId={selectedExample?.id || null}
+            onSelect={handleSelectExample}
+          />
+        }
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <ExampleSidebar
-          examples={examples}
-          selectedId={selectedExample?.id || null}
-          onSelect={handleSelectExample}
-          isOpen={sidebarOpen}
-        />
+        {/* 좌측: 코드 에디터 영역 */}
+        <div
+          className="flex flex-col border-r"
+          style={{
+            width: LAYOUT_CONFIG.leftPanel.width,
+            minWidth: LAYOUT_CONFIG.leftPanel.minWidth,
+          }}
+        >
+          <div className="flex-1 p-4 overflow-hidden">
+            <CodeEditor
+              code={code}
+              currentLine={executionState.currentLine}
+              onChange={handleCodeChange}
+              readOnly={executionState.isRunning}
+              parseErrors={parseErrors}
+            />
+          </div>
+        </div>
 
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {/* 상단: 코드 에디터 + 콜스택 + 큐 영역 */}
+        {/* 우측: 시각화 영역 */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Task Queue - 수평 배치 */}
           <div
-            className="flex overflow-hidden"
-            style={{ height: `${LAYOUT_CONFIG.rightPanel.visualizationArea}%` }}
+            className="border-b p-3"
+            style={{ height: LAYOUT_CONFIG.rightPanel.queueHeight }}
           >
-            {/* Code editor section - 왼쪽 영역 */}
-            <div
-              className="p-4 overflow-hidden"
-              style={{ width: LAYOUT_CONFIG.mainArea.codeEditorWidth }}
-            >
-              <CodeEditor
-                code={code}
-                currentLine={executionState.currentLine}
-                onChange={setCode}
-                readOnly={executionState.isRunning}
-              />
-            </div>
+            <QueuePanel
+              title="Task Queue"
+              type="task"
+              items={executionState.taskQueue}
+            />
+          </div>
 
-            {/* Call Stack - 중앙에 세로로 배치 */}
-            <div
-              className="p-4 overflow-hidden border-l"
-              style={{ width: LAYOUT_CONFIG.mainArea.callStackWidth }}
-            >
+          {/* Microtask Queue - 수평 배치 */}
+          <div
+            className="border-b p-3"
+            style={{ height: LAYOUT_CONFIG.rightPanel.queueHeight }}
+          >
+            <QueuePanel
+              title="Microtask Queue"
+              type="microtask"
+              items={executionState.microtaskQueue}
+            />
+          </div>
+
+          {/* 하단: Call Stack + Console */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Call Stack */}
+            <div className="w-1/2 p-3 border-r overflow-hidden">
               <CallStackPanel frames={executionState.callStack} />
             </div>
 
-            {/* Queue panels - 우측 영역 */}
-            <div className="flex-1 flex flex-col gap-0 border-l">
-              <div className="flex-1 p-4 overflow-hidden">
-                <QueuePanel
-                  title="Microtask Queue"
-                  type="microtask"
-                  items={executionState.microtaskQueue}
-                />
-              </div>
-              <div className="flex-1 p-4 overflow-hidden border-t">
-                <QueuePanel
-                  title="Task Queue"
-                  type="task"
-                  items={executionState.taskQueue}
-                />
-              </div>
+            {/* Console Output */}
+            <div className="w-1/2 overflow-hidden">
+              <ConsolePanel
+                logs={executionState.consoleOutput}
+                onClear={handleClearConsole}
+              />
             </div>
           </div>
-
-          {/* 하단: Console Output - 전체 너비 */}
-          <div
-            className="border-t"
-            style={{ height: `${LAYOUT_CONFIG.rightPanel.consoleArea}vh` }}
-          >
-            <ConsolePanel
-              logs={executionState.consoleOutput}
-              onClear={handleClearConsole}
-            />
-          </div>
-        </main>
+        </div>
       </div>
     </div>
   );
