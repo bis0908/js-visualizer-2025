@@ -131,17 +131,19 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 220 13% 9%;
+  /* Material Theme 기준 밝은 회색 톤 (#263238) */
+  --background: 200 18% 18%;
 
   --foreground: 220 9% 93%;
 
-  --border: 220 13% 18%;
+  --border: 200 15% 25%;
 
-  --card: 220 13% 11%;
+  /* 카드는 배경보다 약간 밝게 */
+  --card: 200 18% 20%;
 
   --card-foreground: 220 9% 93%;
 
-  --card-border: 220 13% 20%;
+  --card-border: 200 15% 28%;
 
   --sidebar: 220 13% 13%;
 
@@ -332,4 +334,31 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+}
+
+/* CodeMirror 현재 실행 줄 애니메이션 */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: inset 0 0 15px rgba(130, 170, 255, 0.15);
+  }
+  50% {
+    box-shadow: inset 0 0 25px rgba(130, 170, 255, 0.35);
+  }
+}
+
+.cm-executing-line {
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+/* CodeMirror 기본 스타일 오버라이드 */
+.cm-editor {
+  height: 100%;
+}
+
+.cm-editor .cm-content {
+  padding: 8px 0;
+}
+
+.cm-editor .cm-line {
+  padding: 0 16px;
 }
