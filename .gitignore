@@ -234,3 +234,6 @@ $RECYCLE.BIN/
 
 # mcp
 .playwright-mcp
+
+# documents
+documents/**
