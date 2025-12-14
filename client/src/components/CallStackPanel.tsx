@@ -24,9 +24,11 @@ export function CallStackPanel({ frames }: CallStackPanelProps) {
   return (
     <div className="h-full bg-card border rounded-lg overflow-hidden flex flex-col">
       {/* Panel header */}
-      <div className="h-12 flex items-center justify-between px-4 border-b">
-        <h2 className="text-base font-semibold">Call Stack</h2>
-        <span className="text-xs text-muted-foreground">
+      <div className="h-10 flex items-center justify-between px-4 border-b bg-emerald-100/80 dark:bg-emerald-900/50 border-emerald-200 dark:border-emerald-800">
+        <h2 className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+          Call Stack
+        </h2>
+        <span className="text-xs text-emerald-600 dark:text-emerald-300/70">
           {frames.length} frame{frames.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -70,8 +72,8 @@ export function CallStackPanel({ frames }: CallStackPanelProps) {
                     "border rounded-lg p-3 transition-all duration-300 ease-out",
                     "animate-in slide-in-from-bottom-4 fade-in",
                     index === frames.length - 1
-                      ? "bg-primary/10 border-primary/30 shadow-lg shadow-primary/20 scale-[1.02]"
-                      : "bg-background hover-elevate",
+                      ? "bg-emerald-100 dark:bg-emerald-900/50 border-emerald-400 dark:border-emerald-500 shadow-lg shadow-emerald-500/20 scale-[1.02]"
+                      : "bg-background dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 hover-elevate",
                   )}
                   style={{
                     animationDelay: `${index * 50}ms`,
@@ -80,10 +82,10 @@ export function CallStackPanel({ frames }: CallStackPanelProps) {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                      <div className="text-base font-semibold font-mono">
+                      <div className="text-base font-semibold font-mono text-emerald-900 dark:text-emerald-100">
                         {frame.functionName}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
+                      <div className="text-xs text-emerald-600 dark:text-emerald-300/70 mt-1">
                         {frame.location}
                       </div>
                     </div>
